@@ -108,10 +108,10 @@ namespace Weywey.Core.Services
                     index = 0;
 
                 else if (reaction.Emote.Name == _emotes[1].Name)
-                    index = index > 0 ? index-- : index;
+                    index = index > 0 ? index - 1 : index;
 
                 else if (reaction.Emote.Name == _emotes[3].Name)
-                    index = index < embeds.Count() - 1 ? index++ : index;
+                    index = index < embeds.Count() - 1 ? index + 1 : index;
 
                 else if (reaction.Emote.Name == _emotes[4].Name)
                     index = embeds.Count() - 1;

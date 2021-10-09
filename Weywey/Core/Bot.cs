@@ -95,7 +95,7 @@ namespace Weywey.Core
         private async Task OnReady()
         {
             await _client.SetStatusAsync(UserStatus.Idle);
-            await _client.SetGameAsync($"@{_client.CurrentUser.Username} help • Version {ConfigurationService.Version}", null, ActivityType.Listening);
+            await _client.SetGameAsync($"@{_client.CurrentUser.Username} help • Version {ConfigurationService.Version}", null, ActivityType.Watching);
         }
 
         private async Task OnMessage(SocketMessage arg)
