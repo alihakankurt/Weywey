@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using Weywey.Core.Services;
 
 namespace Weywey.Core.Commands.Fun
 {
@@ -34,7 +35,7 @@ namespace Weywey.Core.Commands.Fun
                 .AddField("Latency", $"{Context.Client.Latency} ms", true)
                 .AddField(".NET Version", "Core 3.1", true)
                 .AddField("C# Version", "9.0", true)
-                .AddField("Bot Version", "1.5", true)
+                .AddField("Bot Version", ConfigurationService.Version, true)
                 .AddField("Discord.NET Version", "2.4.0", true)
                 .AddField("RAM Usage", $"{process.PrivateMemorySize64 / 1048576} MB", true)
                 .AddField("CPU Time", $"{process.TotalProcessorTime.TotalMilliseconds} ms", true)
