@@ -15,7 +15,7 @@ namespace Weywey.Core.Commands.Help
         [Name("Help")]
         [Command("help", RunMode = RunMode.Async)]
         [Summary("Shows the help page.")]
-        public async Task HelpCommand(string command = null)
+        public async Task HelpCommand([Remainder] [Summary("Command or module's name to get help.")] string command = null)
         {
             var _commands = ProviderService.GetService<CommandService>();
 
@@ -28,7 +28,7 @@ namespace Weywey.Core.Commands.Help
                         footer.IconUrl = Context.User.GetAvatarUrl();
                     })
                     .WithTitle($"{Context.Client.CurrentUser.Username}'s Help Page")
-                    .WithDescription($"Don't forget the write description here.\nModules: {string.Join(", ", _commands.Modules.Select(x => x.Name.Replace("Module", "")))}")
+                    .WithDescription($"Don't forget the write description here.\n\nModules: {string.Join(", ", _commands.Modules.Select(x => $"`{x.Name.Replace("Module", "")}`"))}")
                     .WithColor(Color.Teal)
                     .WithCurrentTimestamp().Build();
                 await ReplyAsync(embed: embed);
@@ -63,7 +63,7 @@ namespace Weywey.Core.Commands.Help
                         footer.Text = $"Requested by {Context.User}";
                         footer.IconUrl = Context.User.GetAvatarUrl();
                     })
-                    .WithTitle($"{cmd.Name} | {cmd.Module}")
+                    .WithTitle($"{cmd.Name}")
                     .AddField("Summary", cmd.Summary, false)
                     .AddField("Syntax", cmd.GetSyntax(), false)
                     .AddField("Module", cmd.Module.Name.Replace("Module", ""), false)

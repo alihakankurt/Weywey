@@ -23,7 +23,7 @@ namespace Weywey.Core.Commands.Owner
 
                 case 1:
                     await ReplyAsync("Restarting...");
-                    System.Diagnostics.Process.Start(Environment.OSVersion.Platform == PlatformID.Win32NT ? "Weywey.exe" : $@"dotnet run {AppContext.BaseDirectory}\Weywey.dll");
+                    System.Diagnostics.Process.Start(Environment.OSVersion.Platform == PlatformID.Win32NT ? "Weywey.exe" : "dotnet run Weywey.dll");
                     Environment.Exit(0);
                     break;
 
