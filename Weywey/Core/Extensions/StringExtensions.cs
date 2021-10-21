@@ -9,11 +9,8 @@ using Weywey.Core.Services;
 
 namespace Weywey.Core.Extensions
 {
-    public static class StringExtensions
+    public static class Extensions
     {
-        public static string GetSyntax(this CommandInfo source)
-            => $"```cs\n{ConfigurationService.Prefix}{string.Join(" | ", source.Aliases)} {string.Join(" ", source.Parameters.Select(p => p.IsOptional ? $"[{p.Name}]" : $"<{p.Name}>"))}```";
-
         public static string ClearCodeBlock(this string source)
             => source.StartsWith("```") && source.EndsWith("```") ? string.Join("\n", source.Trim('`').Split("\n").Where((l, i) => i != 0)) : source;
 

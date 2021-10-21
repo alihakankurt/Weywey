@@ -15,26 +15,66 @@ namespace Weywey.Core.Commands.Help
         [Name("Help")]
         [Command("help", RunMode = RunMode.Async)]
         [Summary("Shows the help page.")]
-        public async Task HelpCommand()
+        public async Task HelpCommand(string command = null)
         {
             var _commands = ProviderService.GetService<CommandService>();
-            var commands = await _commands.GetExecutableCommandsAsync(Context, ProviderService.Provider);
-            var pages = commands.OrderBy(x => x.Module.Name).Select((x, i) =>
-                new EmbedBuilder()
+
+            if (command == null)
+            {
+                var embed = new EmbedBuilder()
                     .WithFooter(footer =>
                     {
-                        footer.Text = $"Requested by {Context.User} | Page {i + 1}/{commands.Count}";
+                        footer.Text = $"Requested by {Context.User}";
                         footer.IconUrl = Context.User.GetAvatarUrl();
                     })
-                    .WithTitle(x.Name)
-                    .AddField("Summary", x.Summary, false)
-                    .AddField("Syntax", x.GetSyntax(), false)
-                    .AddField("Module", x.Module.Name.Replace("Module", ""), false)
-                    .AddField("Permissions", x.Preconditions.Where(x => x is RequireUserPermissionAttribute).Count() > 0 ? string.Join("\n", x.Preconditions.Where(x => x is RequireUserPermissionAttribute).Select(x => ((x as RequireUserPermissionAttribute) is var p && p.GuildPermission.HasValue ? p.GuildPermission.ToString() : p.ChannelPermission.ToString()).SeperateFromCaps())) : "No permission required.", false)
-                    .WithColor(Color.Blue).Build()
-            );
-            
-            await ReactionService.PaginateAsync(Context.Channel, Context.User, pages);
+                    .WithTitle($"{Context.Client.CurrentUser.Username}'s Help Page")
+                    .WithDescription($"Don't forget the write description here.\nModules: {string.Join(", ", _commands.Modules.Select(x => x.Name.Replace("Module", "")))}")
+                    .WithColor(Color.Teal)
+                    .WithCurrentTimestamp().Build();
+                await ReplyAsync(embed: embed);
+                return;
+            }
+
+            command = command.ToLower();
+
+            var module = _commands.Modules.FirstOrDefault(x => x.Name.ToLower() == command);
+            if (module != null)
+            {
+                var embed = new EmbedBuilder()
+                    .WithFooter(footer =>
+                    {
+                        footer.Text = $"Requested by {Context.User}";
+                        footer.IconUrl = Context.User.GetAvatarUrl();
+                    })
+                    .WithTitle($"{module.Name.SeperateFromCaps()}'s Help Page")
+                    .WithDescription(string.Join("\n", module.Commands.Select(x => $"`{x.Name}` >> {x.Summary}")))
+                    .WithColor(Color.Teal)
+                    .WithCurrentTimestamp().Build();
+                await ReplyAsync(embed: embed);
+                return;
+            }
+
+            var cmd = _commands.Commands.FirstOrDefault(x => x.Name.ToLower() == command || x.Aliases.Contains(command));
+            if (cmd != null)
+            {
+                var embed = new EmbedBuilder()
+                    .WithFooter(footer =>
+                    {
+                        footer.Text = $"Requested by {Context.User}";
+                        footer.IconUrl = Context.User.GetAvatarUrl();
+                    })
+                    .WithTitle($"{cmd.Name} | {cmd.Module}")
+                    .AddField("Summary", cmd.Summary, false)
+                    .AddField("Syntax", cmd.GetSyntax(), false)
+                    .AddField("Module", cmd.Module.Name.Replace("Module", ""), false)
+                    .AddField("Parameters", cmd.Parameters.Count > 0 ? string.Join("\n", cmd.Parameters.Select(x => $"`{x.Name}` -> {x.Summary} {(x.IsOptional ? "(Optional)" : "")}")) : "No parameters reqired.", false)
+                    .AddField("Permissions", cmd.Preconditions.Where(x => x is RequireUserPermissionAttribute).Count() > 0 ? string.Join("\n", cmd.Preconditions.Where(x => x is RequireUserPermissionAttribute).Select(x => ((x as RequireUserPermissionAttribute) is var p && p.GuildPermission.HasValue ? p.GuildPermission.ToString() : p.ChannelPermission.ToString()).SeperateFromCaps())) : "No permission required.", false)
+                    .WithColor(Color.Teal).Build();
+                await ReplyAsync(embed: embed);
+                return;
+            }
+
+            await ReplyAsync($"Command or module not found with {command}.");
         }
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Net.Http;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Timers;
@@ -55,7 +56,8 @@ namespace Weywey.Core
             var collection = new ServiceCollection()
                 .AddSingleton(_client)
                 .AddSingleton(_commands)
-                .AddSingleton(new Random());
+                .AddSingleton(new Random())
+                .AddSingleton(new HttpClient());
 
             ProviderService.SetProvider(collection);
             _commands.Log += Log;
