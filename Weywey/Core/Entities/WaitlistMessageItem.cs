@@ -6,17 +6,17 @@ namespace Weywey.Core.Entities
 {
     public class WaitlistMessageItem
     {
-        public WaitlistMessageItem(ulong channelId, TimeSpan duration, Expression<Func<SocketMessage, bool>> filter)
+        public WaitlistMessageItem(ulong channelId, TimeSpan duration, Predicate<SocketMessage> filter)
         {
             ChannelId = channelId;
             Duration = duration;
-            Filter = filter == null ? null : filter.Compile();
+            Filter = filter == null ? null : filter;
             CreatedAt = DateTime.UtcNow;
         }
 
         public ulong ChannelId { get; set; }
         public TimeSpan Duration { get; set; }
-        public Func<SocketMessage, bool> Filter { get; set; }
+        public Predicate<SocketMessage> Filter { get; set; }
         public SocketMessage Message { get; set; }
         public DateTime CreatedAt { get; set; }
         public bool Expired

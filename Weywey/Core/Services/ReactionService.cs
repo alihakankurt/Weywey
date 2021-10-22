@@ -66,7 +66,7 @@ namespace Weywey.Core.Services
                             item.Completed = true;
                         }
 
-                    _polls.RemoveAll(x => x.Completed);
+                    RemovePoll(x => x.Completed);
                     await Task.Delay(30000);
                 });
             }
@@ -127,8 +127,8 @@ namespace Weywey.Core.Services
             if ((channel as SocketTextChannel) == null)
                 return Task.CompletedTask;
 
-            RemoveReactionRole(_reactionRoles.Where(x => x.MessageId == param.Id).ToArray());
-            RemovePoll(_polls.Where(x => x.MessageId == param.Id).ToArray());
+            RemoveReactionRole(x => x.MessageId == param.Id);
+            RemovePoll(x => x.MessageId == param.Id);
 
             return Task.CompletedTask;
         }
@@ -142,7 +142,7 @@ namespace Weywey.Core.Services
             return Task.CompletedTask;
         }
 
-        public static async Task<SocketReaction> WaitForReactionAsync(ulong messageId, TimeSpan duration, Expression<Func<SocketReaction, bool>> filter = null)
+        public static async Task<SocketReaction> WaitForReactionAsync(ulong messageId, TimeSpan duration, Predicate<SocketReaction> filter = null)
         {
             var item = new WaitlistReactionItem(messageId, duration, filter);
 
@@ -158,7 +158,7 @@ namespace Weywey.Core.Services
             return item.Reaction;
         }
 
-        public static async Task<SocketMessage> WaitForMessageAsync(ulong channelId, TimeSpan duration, Expression<Func<SocketMessage, bool>> filter = null)
+        public static async Task<SocketMessage> WaitForMessageAsync(ulong channelId, TimeSpan duration, Predicate<SocketMessage> filter = null)
         {
             var item = new WaitlistMessageItem(channelId, duration, filter);
 
@@ -184,9 +184,9 @@ namespace Weywey.Core.Services
             DataService.Save(_reactionPath, _reactionRoles);
         }
 
-        public static void RemoveReactionRole(params ReactionRoleItem[] items)
+        public static void RemoveReactionRole(Predicate<ReactionRoleItem> filter)
         {
-            int count = _reactionRoles.RemoveAll(x => items.Contains(x));
+            int count = _reactionRoles.RemoveAll(filter);
             if (count > 0)
                 DataService.Save(_reactionPath, _reactionRoles);
         }
@@ -206,9 +206,9 @@ namespace Weywey.Core.Services
             DataService.Save(_pollPath, _polls);
         }
 
-        public static void RemovePoll(params PollItem[] items)
+        public static void RemovePoll(Predicate<PollItem> filter)
         {
-            int count = _polls.RemoveAll(x => items.Contains(x));
+            int count = _polls.RemoveAll(filter);
             if (count > 0)
                 DataService.Save(_pollPath, _polls);
         }

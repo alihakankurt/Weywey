@@ -6,17 +6,17 @@ namespace Weywey.Core.Entities
 {
     public class WaitlistReactionItem
     {
-        public WaitlistReactionItem(ulong messageId, TimeSpan duration, Expression<Func<SocketReaction, bool>> filter)
+        public WaitlistReactionItem(ulong messageId, TimeSpan duration, Predicate<SocketReaction> filter)
         {
             MessageId = messageId;
             Duration = duration;
-            Filter = filter == null ? null : filter.Compile();
+            Filter = filter == null ? null : filter;
             CreatedAt = DateTime.UtcNow;
         }
 
         public ulong MessageId { get; set; }
         public TimeSpan Duration { get; set; }
-        public Func<SocketReaction, bool> Filter { get; set; }
+        public Predicate<SocketReaction> Filter { get; set; }
         public SocketReaction Reaction { get; set; }
         public DateTime CreatedAt { get; set; }
         public bool Expired
