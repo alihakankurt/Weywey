@@ -69,6 +69,7 @@ namespace Weywey.Core
         public async Task RunAsync()
         {
             ConfigurationService.RunService();
+            DataService.RunService();
             ReactionService.RunService();
 
             if (string.IsNullOrWhiteSpace(ConfigurationService.Token))
@@ -119,9 +120,9 @@ namespace Weywey.Core
             {
                 if (result.Error is CommandError.UnknownCommand)
                     return;
-
-                else
-                    await context.Channel.SendMessageAsync($"❗ {GetErrorMessage(result)}");
+                
+                await context.Channel.SendMessageAsync($"❗ {GetErrorMessage(result)}");
+                Console.WriteLine(result.ErrorReason);
             }
         }
 

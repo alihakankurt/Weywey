@@ -14,36 +14,37 @@ namespace Weywey.Core.Modules.Moderation
         [Name("Reaction Role")]
         [Command("reaction-role", RunMode = RunMode.Async)]
         [Summary("Creates a reaction role message.")]
-        [RequireUserPermission(GuildPermission.ManageNicknames)]
-        public async Task ReactionRoleCommand([Remainder] [Summary("The reaction role count")] int count)
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public async Task ReactionRoleCommand([Summary("The title for reaction roles.")] string title, [Remainder] [Summary("The reaction role count")] int count)
         {
             var dictionary = new Dictionary<SocketRole, SocketReaction>();
 
-            await ReplyAsync($"Mention {count} roles and react for each one.");
+            var message = await ReplyAsync($"Mention {count} roles and react for each one.");
             for (int i = 0; i < count; i++)
             {
-                var msg = await ReactionService.WaitForMessageAsync(Context.Channel.Id, TimeSpan.FromSeconds(30), x => x.Author.Id == Context.User.Id && x.MentionedRoles.Count == 1);
+                var msg = await ReactionService.WaitForMessageAsync(Context.Channel.Id, TimeSpan.FromSeconds(15), x => x.Author.Id == Context.User.Id && x.MentionedRoles.Count == 1);
                 if (msg == null)
                 {
-                    await ReplyAsync("Timed out.");
+                    await message.DeleteAsync();
                     return;
                 }
 
-                var reaction = await ReactionService.WaitForReactionAsync(msg.Id, TimeSpan.FromSeconds(10), x => x.UserId == Context.User.Id);
+                var reaction = await ReactionService.WaitForReactionAsync(msg.Id, TimeSpan.FromSeconds(15), x => x.UserId == Context.User.Id);
                 if (reaction == null)
                 {
-                    await ReplyAsync("Timed out.");
+                    await message.DeleteAsync();
                     return;
                 }
+                await msg.DeleteAsync();
                 dictionary.Add(msg.MentionedRoles.First(), reaction);
             }
+            await message.DeleteAsync();
 
             var embed = new EmbedBuilder()
-                .WithTitle("React to give yourself a role.")
-                .WithDescription(string.Join("\n", dictionary.Select(x => $"{x.Value.Emote} {x.Key.Mention}")))
+                .WithTitle(title)
+                .WithDescription("React to give yourself a role.\n\n" + string.Join("\n", dictionary.Select(x => $"{x.Value.Emote} {x.Key.Mention}")))
                 .WithCurrentTimestamp().Build();
-
-            var message = await ReplyAsync(embed: embed);
+            message = await ReplyAsync(embed: embed);
             await message.AddReactionsAsync(dictionary.Select(x => x.Value.Emote).ToArray());
             ReactionService.AddReactionRole(message.Id, dictionary.ToDictionary(x => x.Value.Emote.ToString(), x =>  x.Key.Id));
         }

@@ -1,6 +1,5 @@
 ﻿using Discord;
 using Discord.WebSocket;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -8,64 +7,77 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
+using Weywey.Core.Constants;
+using Weywey.Core.Entities;
 using Weywey.Core.Extensions;
 
 namespace Weywey.Core.Services
 {
     public static class ReactionService
     {
-        private static string _path = "reaction-roles.json";
+        private static string _reactionPath = "reaction-roles.json";
+        private static string _pollPath = "polls.json";
         private static DiscordSocketClient _client { get; set; }
         private static List<WaitlistReactionItem> _waitlistReactions { get; set; }
         private static List<WaitlistMessageItem> _waitlistMessages { get; set; }
         private static List<ReactionRoleItem> _reactionRoles { get; set; }
-        private static List<IEmote> _emotes { get; set; }
+        private static List<PollItem> _polls { get; set; }
         public static void RunService()
         {
+            _client = ProviderService.GetService<DiscordSocketClient>();
             _waitlistReactions = new List<WaitlistReactionItem>();
             _waitlistMessages = new List<WaitlistMessageItem>();
-            _emotes = new List<IEmote>() { new Emoji("⏪"), new Emoji("◀️"), new Emoji("⏹"), new Emoji("▶️"), new Emoji("⏩"), new Emoji("🔢") };
+            _reactionRoles = DataService.Get<List<ReactionRoleItem>>(_reactionPath);
+            _polls = DataService.Get<List<PollItem>>(_pollPath);
 
-            if (!File.Exists(_path))
-                File.Create(_path).Close();
-
-            using (var reader = new StreamReader(_path))
-            {
-                _reactionRoles = JsonConvert.DeserializeObject<List<ReactionRoleItem>>(reader.ReadToEnd()) ?? new List<ReactionRoleItem>();
-            }
-
-            _client = ProviderService.GetService<DiscordSocketClient>();
+            _client.Ready += ReactionService_Ready; ;
             _client.ReactionAdded += ReactionService_ReactionAdded;
             _client.ReactionRemoved += ReactionService_ReactionRemoved;
             _client.MessageReceived += ReactionService_MessageReceived;
+            _client.MessageDeleted += ReactionService_MessageDeleted;
             _client.RoleDeleted += ReactionService_RoleDeleted;
         }
 
-        private static Task ReactionService_RoleDeleted(SocketRole role)
+        private static async Task ReactionService_Ready()
         {
-            foreach (var item in _reactionRoles)
-                if (item.Roles.ContainsValue(role.Id))
-                    item.Roles.Remove(item.Roles.First(x => x.Value == role.Id).Key);
-
-            return Task.CompletedTask;
+            await CompletePolls();
         }
 
-        private static async Task ReactionService_ReactionRemoved(Cacheable<IUserMessage, ulong> param, ISocketMessageChannel channel, SocketReaction reaction)
+        private static async Task CompletePolls()
         {
-            if ((channel as SocketTextChannel) == null)
-                return;
+            foreach (var item in _polls)
+                if (DateTime.UtcNow > item.End)
+                {
+                    var channel = _client.GetGuild(item.GuildId).GetTextChannel(item.ChannelId);
+                    var message = await channel.GetMessageAsync(item.MessageId);
+                    var reactions = message.Reactions.Where(x => Emotes.Numbers.Any(n => n.Name == x.Key.Name)).OrderByDescending(x => x.Value.ReactionCount).ToList();
+                    var most = reactions.FirstOrDefault().Value.ReactionCount - 1;
+                    reactions.RemoveAll(x => x.Value.ReactionCount - 1 != most);
+                    string content;
+                    if (most == 0)
+                        content = $"No votes found for poll ({item.MessageId}).";
 
-            var message = await param.GetOrDownloadAsync();
+                    else if (reactions.Count == 1)
+                        content = $"Option {reactions[0].Key.Name} won the poll ({item.MessageId}) with {most} votes.";
 
-            foreach (var item in _reactionRoles)
-                if (item.MessageId == message.Id)
-                    if (item.Roles.ContainsKey(reaction.Emote.ToString()))
-                        await (reaction.User.Value as SocketGuildUser).RemoveRoleAsync(item.Roles[reaction.Emote.ToString()]);
+                    else if (reactions.Count == 2)
+                        content = $"Options {reactions[0].Key.Name} and {reactions[1].Key.Name} has tied the poll ({item.MessageId}) with {most} votes.";
+
+                    else
+                        content = $"Too many options has tied for poll ({item.MessageId}).";
+
+                    await channel.SendMessageAsync(content + ((most == 31) ? " (sjsj)" : ((most == 69) ? " (asdasd)" : "")));
+                    item.Completed = true;
+                }
+
+            _polls.RemoveAll(x => x.Completed);
+            await Task.Delay(1000);
+            await CompletePolls();
         }
 
         private static async Task ReactionService_ReactionAdded(Cacheable<IUserMessage, ulong> param, ISocketMessageChannel channel, SocketReaction reaction)
         {
-            if ((channel as SocketTextChannel) == null)
+            if (reaction.User.Value.IsBot || (channel as SocketTextChannel) == null)
                 return;
 
             var message = await param.GetOrDownloadAsync();
@@ -80,14 +92,26 @@ namespace Weywey.Core.Services
                     if (item.Filter == null)
                         item.Reaction = reaction;
 
-                    else
-                        if (item.Filter(reaction))
+                    else if (item.Filter(reaction))
                         item.Reaction = reaction;
+        }
+
+        private static async Task ReactionService_ReactionRemoved(Cacheable<IUserMessage, ulong> param, ISocketMessageChannel channel, SocketReaction reaction)
+        {
+            if (reaction.User.Value.IsBot || (channel as SocketTextChannel) == null)
+                return;
+
+            var message = await param.GetOrDownloadAsync();
+
+            foreach (var item in _reactionRoles)
+                if (item.MessageId == message.Id)
+                    if (item.Roles.ContainsKey(reaction.Emote.ToString()))
+                        await (reaction.User.Value as SocketGuildUser).RemoveRoleAsync(item.Roles[reaction.Emote.ToString()]);
         }
 
         private static Task ReactionService_MessageReceived(SocketMessage message)
         {
-            if ((message.Channel as SocketTextChannel) == null)
+            if (message.Author.IsBot || (message.Channel as SocketTextChannel) == null)
                 return Task.CompletedTask;
 
             foreach (var item in _waitlistMessages.Where(x => !x.Expired))
@@ -95,9 +119,28 @@ namespace Weywey.Core.Services
                     if (item.Filter == null)
                         item.Message = message;
 
-                    else
-                        if (item.Filter(message))
+                    else if (item.Filter(message))
                         item.Message = message;
+
+            return Task.CompletedTask;
+        }
+
+        private static Task ReactionService_MessageDeleted(Cacheable<IMessage, ulong> param, ISocketMessageChannel channel)
+        {
+            if ((channel as SocketTextChannel) == null)
+                return Task.CompletedTask;
+
+            RemoveReactionRole(_reactionRoles.Where(x => x.MessageId == param.Id).ToArray());
+            RemovePoll(_polls.Where(x => x.MessageId == param.Id).ToArray());
+
+            return Task.CompletedTask;
+        }
+
+        private static Task ReactionService_RoleDeleted(SocketRole role)
+        {
+            foreach (var item in _reactionRoles)
+                if (item.Roles.ContainsValue(role.Id))
+                    item.Roles.Remove(item.Roles.First(x => x.Value == role.Id).Key);
 
             return Task.CompletedTask;
         }
@@ -141,11 +184,36 @@ namespace Weywey.Core.Services
                 MessageId = messageId,
                 Roles = roles
             });
+            DataService.Save(_reactionPath, _reactionRoles);
+        }
 
-            using (var writer = new StreamWriter(_path))
+        public static void RemoveReactionRole(params ReactionRoleItem[] items)
+        {
+            int count = _reactionRoles.RemoveAll(x => items.Contains(x));
+            if (count > 0)
+                DataService.Save(_reactionPath, _reactionRoles);
+        }
+
+        public static void AddPoll(ulong guildId, ulong channelId, ulong messageId, string question, string[] options, DateTime end)
+        {
+            var poll = new PollItem
             {
-                writer.Write(JsonConvert.SerializeObject(_reactionRoles));
-            }
+                GuildId = guildId,
+                ChannelId = channelId,
+                MessageId = messageId,
+                Question = question,
+                Options = options,
+                End = end
+            };
+            _polls.Add(poll);
+            DataService.Save(_pollPath, _polls);
+        }
+
+        public static void RemovePoll(params PollItem[] items)
+        {
+            int count = _polls.RemoveAll(x => items.Contains(x));
+            if (count > 0)
+                DataService.Save(_pollPath, _polls);
         }
 
         public static async Task PaginateAsync(IMessageChannel channel, IUser user, IEnumerable<Embed> embeds)
@@ -155,31 +223,30 @@ namespace Weywey.Core.Services
 
             int index = 0;
             DateTime start = DateTime.UtcNow;
-
             var message = await channel.SendMessageAsync(embed: embeds.ElementAtOrDefault(index));
 
-            await message.AddReactionsAsync(_emotes.ToArray());
+            await message.AddReactionsAsync(Emotes.DirectionEmotes.ToArray());
 
             while (true)
             {
-                var reaction = await WaitForReactionAsync(message.Id, TimeSpan.FromSeconds(60), x => x.UserId == user.Id && _emotes.Select(x => x.Name).Contains(x.Emote.Name));
+                var reaction = await WaitForReactionAsync(message.Id, TimeSpan.FromSeconds(60), x => x.UserId == user.Id && Emotes.DirectionEmotes.Select(x => x.Name).Contains(x.Emote.Name));
 
-                if (reaction == null || reaction.Emote.Name == _emotes[2].Name)
+                if (reaction == null || reaction.Emote.Name == Emotes.DirectionEmotes[2].Name)
                     break;
 
-                else if (reaction.Emote.Name == _emotes[0].Name)
+                else if (reaction.Emote.Name == Emotes.DirectionEmotes[0].Name)
                     index = 0;
 
-                else if (reaction.Emote.Name == _emotes[1].Name)
+                else if (reaction.Emote.Name == Emotes.DirectionEmotes[1].Name)
                     index = index > 0 ? index - 1 : index;
 
-                else if (reaction.Emote.Name == _emotes[3].Name)
+                else if (reaction.Emote.Name == Emotes.DirectionEmotes[3].Name)
                     index = index < embeds.Count() - 1 ? index + 1 : index;
 
-                else if (reaction.Emote.Name == _emotes[4].Name)
+                else if (reaction.Emote.Name == Emotes.DirectionEmotes[4].Name)
                     index = embeds.Count() - 1;
 
-                else if (reaction.Emote.Name == _emotes[5].Name)
+                else if (reaction.Emote.Name == Emotes.DirectionEmotes[5].Name)
                 {
                     int result;
                     var m = await WaitForMessageAsync(channel.Id, TimeSpan.FromSeconds(10), x => x.Author.Id == user.Id && int.TryParse(x.Content, out result));
@@ -196,49 +263,5 @@ namespace Weywey.Core.Services
 
             await message.DeleteAsync();
         }
-    }
-
-    public class WaitlistReactionItem
-    {
-        public WaitlistReactionItem(ulong messageId, TimeSpan duration, Expression<Func<SocketReaction, bool>> filter)
-        {
-            MessageId = messageId;
-            Duration = duration;
-            Filter = filter == null ? null : filter.Compile();
-            CreatedAt = DateTime.UtcNow;
-        }
-
-        public ulong MessageId { get; set; }
-        public TimeSpan Duration { get; set; }
-        public Func<SocketReaction, bool> Filter { get; set; }
-        public SocketReaction Reaction { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public bool Expired
-            => DateTime.UtcNow.Subtract(CreatedAt).TotalSeconds >= Duration.TotalSeconds;
-    }
-
-    public class WaitlistMessageItem
-    {
-        public WaitlistMessageItem(ulong channelId, TimeSpan duration, Expression<Func<SocketMessage, bool>> filter)
-        {
-            ChannelId = channelId;
-            Duration = duration;
-            Filter = filter == null ? null : filter.Compile();
-            CreatedAt = DateTime.UtcNow;
-        }
-
-        public ulong ChannelId { get; set; }
-        public TimeSpan Duration { get; set; }
-        public Func<SocketMessage, bool> Filter { get; set; }
-        public SocketMessage Message { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public bool Expired
-            => DateTime.UtcNow.Subtract(CreatedAt).TotalSeconds >= Duration.TotalSeconds;
-    }
-
-    public class ReactionRoleItem
-    {
-        public ulong MessageId { get; set; }
-        public Dictionary<string, ulong> Roles { get; set; }
     }
 }
