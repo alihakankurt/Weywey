@@ -2,9 +2,6 @@
 using Discord.Commands;
 using Discord.WebSocket;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Weywey.Core.Services;
 
@@ -15,7 +12,10 @@ namespace Weywey.Core.Commands.Fun
         [Name("Beer")]
         [Command("beer", RunMode = RunMode.Async)]
         [Summary("Drink beer with friends.")]
-        public async Task BeerCommand([Remainder] SocketGuildUser user = null)
+        [RequireBotPermission(ChannelPermission.SendMessages)]
+        [RequireBotPermission(ChannelPermission.AddReactions)]
+        [RequireBotPermission(ChannelPermission.ManageMessages)]
+        public async Task BeerCommand([Remainder] [Summary("User to offer beer")] SocketGuildUser user = null)
         {
             if (user == null || user.Id == Context.User.Id)
             {

@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Discord;
+﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Weywey.Core.Commands.Fun
 {
@@ -14,6 +12,7 @@ namespace Weywey.Core.Commands.Fun
         [Name("Role Information")]
         [Command("roleinfo", RunMode = RunMode.Async)]
         [Summary("Shows a guild role's information.")]
+        [RequireBotPermission(ChannelPermission.SendMessages)]
         public async Task RoleInfoCommand([Remainder] [Summary("What information will be shown")] SocketRole role)
         {
             var embed = new EmbedBuilder()
@@ -37,6 +36,7 @@ namespace Weywey.Core.Commands.Fun
                 .WithDescription($"{role.Mention}'s Information")
                 .WithColor(role.Color)
                 .WithCurrentTimestamp().Build();
+
             await ReplyAsync(embed: embed);
         }
     }

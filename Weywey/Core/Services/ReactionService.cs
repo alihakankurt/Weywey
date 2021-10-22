@@ -2,10 +2,8 @@
 using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Text;
 using System.Threading.Tasks;
 using Weywey.Core.Constants;
 using Weywey.Core.Entities;
@@ -30,7 +28,6 @@ namespace Weywey.Core.Services
             _reactionRoles = DataService.Get<List<ReactionRoleItem>>(_reactionPath);
             _polls = DataService.Get<List<PollItem>>(_pollPath);
 
-            _client.Ready += ReactionService_Ready; ;
             _client.ReactionAdded += ReactionService_ReactionAdded;
             _client.ReactionRemoved += ReactionService_ReactionRemoved;
             _client.MessageReceived += ReactionService_MessageReceived;
@@ -38,41 +35,41 @@ namespace Weywey.Core.Services
             _client.RoleDeleted += ReactionService_RoleDeleted;
         }
 
-        private static async Task ReactionService_Ready()
+        public static async Task CompletePolls()
         {
-            await CompletePolls();
-        }
-
-        private static async Task CompletePolls()
-        {
-            foreach (var item in _polls)
-                if (DateTime.UtcNow > item.End)
+            while (_client.ConnectionState == ConnectionState.Connected)
+            {
+                await Task.Run(async () =>
                 {
-                    var channel = _client.GetGuild(item.GuildId).GetTextChannel(item.ChannelId);
-                    var message = await channel.GetMessageAsync(item.MessageId);
-                    var reactions = message.Reactions.Where(x => Emotes.Numbers.Any(n => n.Name == x.Key.Name)).OrderByDescending(x => x.Value.ReactionCount).ToList();
-                    var most = reactions.FirstOrDefault().Value.ReactionCount - 1;
-                    reactions.RemoveAll(x => x.Value.ReactionCount - 1 != most);
-                    string content;
-                    if (most == 0)
-                        content = $"No votes found for poll ({item.MessageId}).";
+                    foreach (var item in _polls)
+                        if (DateTime.UtcNow > item.End)
+                        {
+                            var channel = _client.GetGuild(item.GuildId).GetTextChannel(item.ChannelId);
+                            var message = await channel.GetMessageAsync(item.MessageId);
+                            var reactions = message.Reactions.Where(x => Emotes.Numbers.Any(n => n.Name == x.Key.Name)).OrderByDescending(x => x.Value.ReactionCount).ToList();
+                            var most = reactions.FirstOrDefault().Value.ReactionCount - 1;
+                            reactions.RemoveAll(x => x.Value.ReactionCount - 1 != most);
+                            string content;
+                            if (most == 0)
+                                content = $"No votes found for poll `({item.MessageId})`.";
 
-                    else if (reactions.Count == 1)
-                        content = $"Option {reactions[0].Key.Name} won the poll ({item.MessageId}) with {most} votes.";
+                            else if (reactions.Count == 1)
+                                content = $"Option {reactions[0].Key.Name} won the poll `({item.MessageId})` with `{most}` votes.";
 
-                    else if (reactions.Count == 2)
-                        content = $"Options {reactions[0].Key.Name} and {reactions[1].Key.Name} has tied the poll ({item.MessageId}) with {most} votes.";
+                            else if (reactions.Count == 2)
+                                content = $"Options {reactions[0].Key.Name} and {reactions[1].Key.Name} has tied the poll `({item.MessageId})` with `{most}` votes.";
 
-                    else
-                        content = $"Too many options has tied for poll ({item.MessageId}).";
+                            else
+                                content = $"Too many options has tied for poll `({item.MessageId})`.";
 
-                    await channel.SendMessageAsync(content + ((most == 31) ? " (sjsj)" : ((most == 69) ? " (asdasd)" : "")));
-                    item.Completed = true;
-                }
+                            await channel.SendMessageAsync(content + ((most == 31) ? " (sjsj)" : ((most == 69) ? " (asdasd)" : "")));
+                            item.Completed = true;
+                        }
 
-            _polls.RemoveAll(x => x.Completed);
-            await Task.Delay(1000);
-            await CompletePolls();
+                    _polls.RemoveAll(x => x.Completed);
+                    await Task.Delay(30000);
+                });
+            }
         }
 
         private static async Task ReactionService_ReactionAdded(Cacheable<IUserMessage, ulong> param, ISocketMessageChannel channel, SocketReaction reaction)
@@ -238,10 +235,10 @@ namespace Weywey.Core.Services
                     index = 0;
 
                 else if (reaction.Emote.Name == Emotes.DirectionEmotes[1].Name)
-                    index = index > 0 ? index - 1 : index;
+                    index = (index > 0) ? index - 1 : index;
 
                 else if (reaction.Emote.Name == Emotes.DirectionEmotes[3].Name)
-                    index = index < embeds.Count() - 1 ? index + 1 : index;
+                    index = (index < embeds.Count() - 1) ? index + 1 : index;
 
                 else if (reaction.Emote.Name == Emotes.DirectionEmotes[4].Name)
                     index = embeds.Count() - 1;

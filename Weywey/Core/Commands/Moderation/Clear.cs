@@ -1,9 +1,9 @@
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Weywey.Core.Commands.Moderation
 {
@@ -14,7 +14,7 @@ namespace Weywey.Core.Commands.Moderation
         [Alias("purge")]
         [Summary("Deletes spesific amount of messages.")]
         [RequireUserPermission(ChannelPermission.ManageMessages)]
-        public async Task ClearCommand([Summary("Limit for scanning text channel.")] uint scan, [Remainder] [Summary("The author of the messages.")] SocketGuildUser target = null)
+        public async Task ClearCommand([Summary("Limit for scanning text channel")] uint scan, [Remainder] [Summary("The author of the messages")] SocketGuildUser target = null)
         {
             await Context.Message.DeleteAsync();
             scan = Math.Min(scan, 100);

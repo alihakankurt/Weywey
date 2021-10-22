@@ -1,11 +1,4 @@
-﻿using Discord.WebSocket;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Weywey.Core.Constants;
-using Weywey.Core.Services;
+﻿using System;
 
 namespace Weywey.Core.Entities
 {

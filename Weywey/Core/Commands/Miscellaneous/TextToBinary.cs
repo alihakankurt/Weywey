@@ -1,8 +1,5 @@
-﻿using Discord;
-using Discord.Commands;
+﻿using Discord.Commands;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 using Weywey.Core.Extensions;
 
@@ -13,7 +10,7 @@ namespace Weywey.Core.Commands.Miscellaneous
         [Name("Text To Binary")]
         [Command("ttb", RunMode = RunMode.Async)]
         [Summary("Converts given text to binary.")]
-        public async Task TextToBinaryCommand([Remainder] string text)
+        public async Task TextToBinaryCommand([Remainder] [Summary("The content to reply as binary")] string text)
         {
             await ReplyAsync(text.ToBinary().WithCodeBlock());
         }

@@ -1,8 +1,6 @@
-﻿using Discord.Commands;
+﻿using Discord;
+using Discord.Commands;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -13,7 +11,8 @@ namespace Weywey.Core.Commands.Fun
         [Name("OwOify")]
         [Command("owoify", RunMode = RunMode.Async)]
         [Summary("Owoify your message.")]
-        public async Task OwoifyCommand([Remainder] string message)
+        [RequireBotPermission(ChannelPermission.SendMessages)]
+        public async Task OwoifyCommand([Remainder] [Summary("Content to reply as OwO")] string message)
         {
             message = Regex.Replace(message, "(?:r|l)", "w");
             message = Regex.Replace(message, "(?:R|L)", "W");

@@ -4,15 +4,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using Weywey.Core.Services;
 
 namespace Weywey.Core.Extensions
 {
     public static class Extensions
     {
         public static string ClearCodeBlock(this string source)
-            => source.StartsWith("```") && source.EndsWith("```") ? string.Join("\n", source.Trim('`').Split("\n").Where((l, i) => i != 0)) : source;
+            => (source.StartsWith("```") && source.EndsWith("```")) ? string.Join("\n", source.Trim('`').Split("\n").Where((l, i) => i != 0)) : source;
 
         public static string WithCodeBlock(this string source, string language = "cs")
             => $"```{language}\n{source}```";

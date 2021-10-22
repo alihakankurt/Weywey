@@ -1,10 +1,10 @@
-﻿using System;
+﻿using Discord;
+using Discord.Commands;
+using Discord.WebSocket;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Discord;
-using Discord.Commands;
-using Discord.WebSocket;
 using Weywey.Core.Services;
 
 namespace Weywey.Core.Modules.Moderation
@@ -15,7 +15,7 @@ namespace Weywey.Core.Modules.Moderation
         [Command("reaction-role", RunMode = RunMode.Async)]
         [Summary("Creates a reaction role message.")]
         [RequireUserPermission(GuildPermission.Administrator)]
-        public async Task ReactionRoleCommand([Summary("The title for reaction roles.")] string title, [Remainder] [Summary("The reaction role count")] int count)
+        public async Task ReactionRoleCommand([Summary("The title for reaction roles")] string title, [Remainder] [Summary("The reaction role count")] int count)
         {
             var dictionary = new Dictionary<SocketRole, SocketReaction>();
 
@@ -44,6 +44,7 @@ namespace Weywey.Core.Modules.Moderation
                 .WithTitle(title)
                 .WithDescription("React to give yourself a role.\n\n" + string.Join("\n", dictionary.Select(x => $"{x.Value.Emote} {x.Key.Mention}")))
                 .WithCurrentTimestamp().Build();
+
             message = await ReplyAsync(embed: embed);
             await message.AddReactionsAsync(dictionary.Select(x => x.Value.Emote).ToArray());
             ReactionService.AddReactionRole(message.Id, dictionary.ToDictionary(x => x.Value.Emote.ToString(), x =>  x.Key.Id));

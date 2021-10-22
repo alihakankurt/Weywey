@@ -1,9 +1,6 @@
 ﻿using Discord;
 using Discord.Commands;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Weywey.Core.Services;
 
@@ -15,6 +12,7 @@ namespace Weywey.Core.Commands.Fun
         [Command("roll", RunMode = RunMode.Async)]
         [Alias("dice")]
         [Summary("Rolls a dice.")]
+        [RequireBotPermission(ChannelPermission.SendMessages)]
         public async Task RollCommand()
         {
             var embed = new EmbedBuilder()

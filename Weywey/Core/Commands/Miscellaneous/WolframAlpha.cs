@@ -1,11 +1,7 @@
-﻿using Discord;
-using Discord.Commands;
+﻿using Discord.Commands;
 using System;
-using System.Collections.Generic;
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
-using Weywey.Core.Extensions;
 using Weywey.Core.Services;
 
 namespace Weywey.Core.Commands.Miscellaneous
@@ -15,7 +11,7 @@ namespace Weywey.Core.Commands.Miscellaneous
         [Name("Wolfram Alpha")]
         [Command("wolfram", RunMode = RunMode.Async)]
         [Summary("Ask to Wolfram Alpha what you want.")]
-        public async Task WolframAlphaCommand([Remainder] string query)
+        public async Task WolframAlphaCommand([Remainder] [Summary("The question for asking to Wolfram Alpha")] string query)
         {
             await Context.Channel.TriggerTypingAsync();
             query = query.Replace("+", "%2B");

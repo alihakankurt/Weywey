@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Discord;
+﻿using Discord;
 using Discord.Commands;
-using Discord.WebSocket;
+using System;
+using System.Diagnostics;
+using System.Threading.Tasks;
 using Weywey.Core.Services;
 
 namespace Weywey.Core.Commands.Fun
@@ -17,6 +13,7 @@ namespace Weywey.Core.Commands.Fun
         [Command("botinfo", RunMode = RunMode.Async)]
         [Alias("stats")]
         [Summary("Shows the bot's information.")]
+        [RequireBotPermission(ChannelPermission.SendMessages)]
         public async Task BotInfoCommand()
         {
             var process = Process.GetCurrentProcess();
@@ -39,7 +36,7 @@ namespace Weywey.Core.Commands.Fun
                 .AddField("Discord.NET Version", "2.4.0", true)
                 .AddField("RAM Usage", $"{process.PrivateMemorySize64 / 1048576} MB", true)
                 .AddField("CPU Time", $"{process.TotalProcessorTime.TotalMilliseconds} ms", true)
-                .WithColor(Context.Client.Latency < 100 ? Color.DarkGreen : Context.Client.Latency < 200 ? Color.Gold : Color.Red)
+                .WithColor((Context.Client.Latency < 100) ? Color.DarkGreen : ((Context.Client.Latency < 200) ? Color.Gold : Color.Red))
                 .WithCurrentTimestamp().Build();
 
             await ReplyAsync(embed: embed);

@@ -1,14 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Threading.Tasks;
-using Discord;
+﻿using Discord;
 using Discord.Commands;
-using Discord.WebSocket;
-using Microsoft.CodeAnalysis.CSharp.Scripting;
-using Microsoft.CodeAnalysis.Scripting;
-using Weywey.Core.Extensions;
+using System;
+using System.Threading.Tasks;
 
 namespace Weywey.Core.Commands.Owner
 {
@@ -18,7 +11,7 @@ namespace Weywey.Core.Commands.Owner
         [Command("send")]
         [Summary("Sends message to target channel.")]
         [RequireOwner]
-        public async Task SendCommand([Summary("Channel id.")] ulong id, [Remainder] [Summary("The message to sent.")] string message)
+        public async Task SendCommand([Summary("Channel id")] ulong id, [Remainder] [Summary("The message to sent")] string message)
         {
             var channel = Context.Client.GetChannel(id);
 
@@ -27,7 +20,7 @@ namespace Weywey.Core.Commands.Owner
                     await user.SendMessageAsync(message);
                 
                 else
-                    await ReplyAsync("Channel not found with this id.");
+                    await ReplyAsync("Channel not found with this id!");
 
             else
                 await (channel as IMessageChannel).SendMessageAsync(message);

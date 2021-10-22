@@ -1,9 +1,7 @@
 ﻿using Discord;
 using Discord.Commands;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Weywey.Core.Extensions;
 using Weywey.Core.Services;
@@ -15,7 +13,8 @@ namespace Weywey.Core.Commands.Help
         [Name("Help")]
         [Command("help", RunMode = RunMode.Async)]
         [Summary("Shows the help page.")]
-        public async Task HelpCommand([Remainder] [Summary("Command or module's name to get help.")] string command = null)
+        [RequireBotPermission(ChannelPermission.SendMessages)]
+        public async Task HelpCommand([Remainder] [Summary("Command or module's name to get help")] string command = null)
         {
             var _commands = ProviderService.GetService<CommandService>();
 
@@ -28,9 +27,10 @@ namespace Weywey.Core.Commands.Help
                         footer.IconUrl = Context.User.GetAvatarUrl();
                     })
                     .WithTitle($"{Context.Client.CurrentUser.Username}'s Help Page")
-                    .WithDescription($"Don't forget the write description here.\n\nModules: {string.Join(", ", _commands.Modules.Select(x => $"`{x.Name.Replace("Module", "")}`"))}")
+                    .WithDescription($"Type `{ConfigurationService.Prefix}help <command|module>` to get help about a command or module. \n\nModules:\n {string.Join('\n', _commands.Modules.Select(x => $"`{x.Name}`"))}")
                     .WithColor(Color.Teal)
                     .WithCurrentTimestamp().Build();
+
                 await ReplyAsync(embed: embed);
                 return;
             }
@@ -47,9 +47,10 @@ namespace Weywey.Core.Commands.Help
                         footer.IconUrl = Context.User.GetAvatarUrl();
                     })
                     .WithTitle($"{module.Name.SeperateFromCaps()}'s Help Page")
-                    .WithDescription(string.Join("\n", module.Commands.Select(x => $"`{x.Name}` >> {x.Summary}")))
+                    .WithDescription(string.Join('\n', module.Commands.Select(x => $"`{x.Name}` >> {x.Summary}")))
                     .WithColor(Color.Teal)
                     .WithCurrentTimestamp().Build();
+
                 await ReplyAsync(embed: embed);
                 return;
             }
@@ -67,14 +68,15 @@ namespace Weywey.Core.Commands.Help
                     .AddField("Summary", cmd.Summary, false)
                     .AddField("Syntax", cmd.GetSyntax(), false)
                     .AddField("Module", cmd.Module.Name.Replace("Module", ""), false)
-                    .AddField("Parameters", cmd.Parameters.Count > 0 ? string.Join("\n", cmd.Parameters.Select(x => $"`{x.Name}` -> {x.Summary} {(x.IsOptional ? "(Optional)" : "")}")) : "No parameters reqired.", false)
-                    .AddField("Permissions", cmd.Preconditions.Where(x => x is RequireUserPermissionAttribute).Count() > 0 ? string.Join("\n", cmd.Preconditions.Where(x => x is RequireUserPermissionAttribute).Select(x => ((x as RequireUserPermissionAttribute) is var p && p.GuildPermission.HasValue ? p.GuildPermission.ToString() : p.ChannelPermission.ToString()).SeperateFromCaps())) : "No permission required.", false)
+                    .AddField("Parameters", cmd.Parameters.Count > 0 ? string.Join('\n', cmd.Parameters.Select(x => $"`{x.Name}` -> {x.Summary} {(x.IsOptional ? "(Optional)" : "")}")) : "No parameters reqired.", false)
+                    .AddField("Permissions", (cmd.Preconditions.Where(x => x is RequireUserPermissionAttribute).Count() > 0) ? string.Join('\n', cmd.Preconditions.Where(x => x is RequireUserPermissionAttribute).Select(x => (((x as RequireUserPermissionAttribute) is var p && p.GuildPermission.HasValue) ? p.GuildPermission.ToString() : p.ChannelPermission.ToString()).SeperateFromCaps())) : "No permission required.", false)
                     .WithColor(Color.Teal).Build();
+
                 await ReplyAsync(embed: embed);
                 return;
             }
 
-            await ReplyAsync($"Command or module not found with {command}.");
+            await ReplyAsync($"Command or module not found with `{command}`.");
         }
     }
 }

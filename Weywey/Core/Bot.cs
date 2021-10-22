@@ -1,13 +1,13 @@
+using Discord;
+using Discord.Commands;
+using Discord.WebSocket;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Linq;
 using System.Net.Http;
 using System.Reflection;
 using System.Threading.Tasks;
-using System.Timers;
-using Discord;
-using Discord.Commands;
-using Discord.WebSocket;
-using Microsoft.Extensions.DependencyInjection;
+using Weywey.Core.Constants;
 using Weywey.Core.Services;
 using Weywey.Core.TypeReaders;
 
@@ -84,13 +84,14 @@ namespace Weywey.Core
 
         private static Task Log(LogMessage arg)
         {
-            var log = $"[{DateTime.UtcNow.ToLongTimeString()}] ({arg.Severity.ToString().ToUpper()}) {arg.Source} => {(arg.Exception is null ? arg.Message : arg.Exception.Message)}";
+            var log = $"[{DateTime.UtcNow.ToLongTimeString()}] ({arg.Severity.ToString().ToUpper()}) {arg.Source} => {((arg.Exception == null) ? arg.Message : arg.Exception.Message)}";
             
             if (arg.Exception?.InnerException != null)
                 log += $"\n(INNER) => {arg.Exception.InnerException?.Message}";
 
             if (arg.Exception?.InnerException?.InnerException != null)
                 log += $"\n(INNER) => {arg.Exception.InnerException?.InnerException?.Message}";
+            
             Console.WriteLine(log);
             return Task.CompletedTask;
         }
@@ -99,6 +100,7 @@ namespace Weywey.Core
         {
             await _client.SetStatusAsync(UserStatus.Idle);
             await _client.SetGameAsync($"@{_client.CurrentUser.Username} help • Version {ConfigurationService.Version}", null, ActivityType.Watching);
+            ReactionService.CompletePolls().GetAwaiter();
         }
 
         private async Task OnMessage(SocketMessage arg)
@@ -122,7 +124,6 @@ namespace Weywey.Core
                     return;
                 
                 await context.Channel.SendMessageAsync($"❗ {GetErrorMessage(result)}");
-                Console.WriteLine(result.ErrorReason);
             }
         }
 
@@ -130,13 +131,13 @@ namespace Weywey.Core
         {
             return result.Error switch
             {
-                CommandError.ParseFailed => "Malformed argument.",
-                CommandError.BadArgCount => "Command did not have the right amount of parameters.",
-                CommandError.ObjectNotFound => "Discord object was not found",
-                CommandError.MultipleMatches => "Multiple commands were found. Please be more specific",
-                CommandError.UnmetPrecondition => "A precondition for the command was not met.",
-                CommandError.Exception => "An exception has occured during the command execution.",
-                CommandError.Unsuccessful => "The command excecution was unsuccessfull.",
+                CommandError.ParseFailed => Messages.ParseFailed,
+                CommandError.BadArgCount => Messages.BadArgumentCount,
+                CommandError.ObjectNotFound => Messages.ObjectNotFound,
+                CommandError.MultipleMatches => Messages.MultipleMatches,
+                CommandError.UnmetPrecondition => Messages.UnmetPreconditions,
+                CommandError.Exception => Messages.Exception,
+                CommandError.Unsuccessful => Messages.Unsuccessful,
                 _ => $"ERROR: {result}"
             };
         }

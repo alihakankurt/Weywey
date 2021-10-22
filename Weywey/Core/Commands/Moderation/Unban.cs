@@ -1,7 +1,7 @@
-using System;
-using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using System;
+using System.Threading.Tasks;
 
 namespace Weywey.Core.Modules.Moderation
 {
@@ -11,7 +11,7 @@ namespace Weywey.Core.Modules.Moderation
         [Command("unban", RunMode = RunMode.Async)]
         [Summary("Unbans banned Discord users.")]
         [RequireUserPermission(GuildPermission.BanMembers)]
-        public async Task UnbanCommand([Summary("The id of target to unban.")] ulong targetId, [Remainder] [Summary("The reason of the unban.")] string reason = null)
+        public async Task UnbanCommand([Summary("The id of target to unban")] ulong targetId, [Remainder] [Summary("The reason of the unban")] string reason = null)
         {
             var ban = await Context.Guild.GetBanAsync(targetId);
 

@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Discord;
+﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Weywey.Core.Commands.Fun
 {
@@ -14,9 +12,10 @@ namespace Weywey.Core.Commands.Fun
         [Name("User Information")]
         [Command("userinfo", RunMode = RunMode.Async)]
         [Summary("Shows a user's information.")]
+        [RequireBotPermission(ChannelPermission.SendMessages)]
         public async Task UserInfoCommand([Remainder] [Summary("Whose information will be shown")] SocketGuildUser user = null)
         {
-            user = user ?? Context.User as SocketGuildUser;
+            user ??= Context.User as SocketGuildUser;
             var topRole = user.Roles.OrderByDescending(x => x.Position).First();
 
             var embed = new EmbedBuilder()
@@ -33,7 +32,7 @@ namespace Weywey.Core.Commands.Fun
                 .AddField("Id", user.Id, false)
                 .AddField("Is bot?", user.IsBot, false)
                 .AddField("Status", user.Status, false)
-                .AddField("Activity", (user.Activity == null ? "No activity" : $"{user.Activity.Type} {user.Activity.Name}"), false)
+                .AddField("Activity", ((user.Activity == null) ? "No activity" : $"{user.Activity.Type} {user.Activity.Name}"), false)
                 .AddField("Top Role", topRole.Mention)
                 .AddField("Created At", user.CreatedAt, false)
                 .AddField("Joined At", user.JoinedAt, false)

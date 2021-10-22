@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Discord.Commands;
+using System;
 using System.Threading.Tasks;
-using Discord;
-using Discord.Commands;
 
 namespace Weywey.Core.Commands.Owner
 {
@@ -12,7 +10,7 @@ namespace Weywey.Core.Commands.Owner
         [Command("exit")]
         [Summary("Closes the bot.")]
         [RequireOwner]
-        public async Task ShutdownCommand([Summary("Exit code (0 for close, 1 for restart).")] short code)
+        public async Task ShutdownCommand([Remainder] [Summary("Exit code (0 for close, 1 for restart)")] short code)
         {
             switch (code)
             {
@@ -23,7 +21,7 @@ namespace Weywey.Core.Commands.Owner
 
                 case 1:
                     await ReplyAsync("Restarting...");
-                    System.Diagnostics.Process.Start(Environment.OSVersion.Platform == PlatformID.Win32NT ? "Weywey.exe" : "dotnet run Weywey.dll");
+                    System.Diagnostics.Process.Start("dotnet Weywey.dll");
                     Environment.Exit(0);
                     break;
 

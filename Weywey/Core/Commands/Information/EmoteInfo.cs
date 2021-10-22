@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
-using Discord.WebSocket;
 
 namespace Weywey.Core.Commands.Fun
 {
@@ -14,7 +10,8 @@ namespace Weywey.Core.Commands.Fun
         [Name("Emote Information")]
         [Command("emoteinfo", RunMode = RunMode.Async)]
         [Summary("Shows a guild emote's information.")]
-        public async Task EmoteInfoCommand([Summary("What information will be shown")] GuildEmote emote)
+        [RequireBotPermission(ChannelPermission.SendMessages)]
+        public async Task EmoteInfoCommand([Remainder] [Summary("What information will be shown")] GuildEmote emote)
         {
             var embed = new EmbedBuilder()
                 .WithAuthor(author =>
@@ -32,6 +29,7 @@ namespace Weywey.Core.Commands.Fun
                 .AddField("Creator Id", emote.CreatorId, false)
                 .AddField("Is animated?", emote.Animated, false)
                 .WithCurrentTimestamp().Build();
+
             await ReplyAsync(embed: embed);
         }
     }

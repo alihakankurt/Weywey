@@ -1,8 +1,6 @@
 ﻿using Discord;
 using Discord.Commands;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Weywey.Core.Commands.Miscellaneous
@@ -12,7 +10,7 @@ namespace Weywey.Core.Commands.Miscellaneous
         [Name("Color")]
         [Command("color", RunMode = RunMode.Async)]
         [Summary("Shows the color from given input.")]
-        public async Task HexCommand(Color color)
+        public async Task HexCommand([Remainder] [Summary("The color in hex format or raw value")] Color color)
         {
             var embed = new EmbedBuilder()
                 .WithFooter(footer =>

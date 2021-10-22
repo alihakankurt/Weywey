@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Discord;
+using Discord.Commands;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Discord;
-using Discord.Commands;
-using Discord.WebSocket;
 using Weywey.Core.Constants;
 using Weywey.Core.Services;
 
@@ -16,7 +14,7 @@ namespace Weywey.Core.Modules.Moderation
         [Command("poll", RunMode = RunMode.Async)]
         [Summary("Creates a poll.")]
         [RequireUserPermission(GuildPermission.Administrator)]
-        public async Task PollCommand([Summary("Duration of the poll from minutes. (max 2880)")] uint duration, [Summary("Question of the poll")] string question, [Summary("Options of the poll")] params string[] options)
+        public async Task PollCommand([Summary("Duration of the poll from minutes (max 2880)")] uint duration, [Summary("Question for the question")] string question, [Summary("Options of the poll")] params string[] options)
         {
             if (options.Length < 2)
             {
@@ -30,7 +28,7 @@ namespace Weywey.Core.Modules.Moderation
                 return;
             }
 
-            DateTime end = DateTime.UtcNow.AddSeconds(Math.Min(2880, Math.Max(1, duration)));
+            DateTime end = DateTime.UtcNow.AddMinutes(Math.Min(2880, Math.Max(1, duration)));
             var embed = new EmbedBuilder()
                 .WithFooter(footer =>
                 {
@@ -39,11 +37,14 @@ namespace Weywey.Core.Modules.Moderation
                 })
                 .WithTitle("New Poll!!")
                 .WithDescription($"{question}\n\n{string.Join('\n', options.Select((x, i) => $"{Emotes.Numbers[i + 1]} {x}"))}")
-                .AddField("Ends At", $"{end} UTC", false)
+                .WithColor(Color.Green)
+                .AddField("Ends At", $"{end.ToShortDateString()} {end.ToShortTimeString()} UTC", false)
                 .WithCurrentTimestamp().Build();
+
             var message = await ReplyAsync(embed: embed);
             for (int i = 0; i < options.Length; i++)
                 await message.AddReactionAsync(Emotes.Numbers[i + 1]);
+            
             ReactionService.AddPoll(Context.Guild.Id, Context.Channel.Id, message.Id, question, options, end);
         }
     }

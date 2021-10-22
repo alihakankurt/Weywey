@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Discord;
+﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Weywey.Core.Commands.Fun
 {
@@ -14,6 +12,7 @@ namespace Weywey.Core.Commands.Fun
         [Name("Guild Information")]
         [Command("guildinfo", RunMode = RunMode.Async)]
         [Summary("Shows the guild's information.")]
+        [RequireBotPermission(ChannelPermission.SendMessages)]
         public async Task GuildInfoCommand()
         {
             var embed = new EmbedBuilder()
@@ -42,6 +41,7 @@ namespace Weywey.Core.Commands.Fun
                 .WithColor(Context.Guild.Owner.Roles.OrderByDescending(x => x.Position).First().Color)
                 .WithThumbnailUrl(Context.Guild.BannerUrl)
                 .WithCurrentTimestamp().Build();
+
             await ReplyAsync(embed: embed);
         }
     }

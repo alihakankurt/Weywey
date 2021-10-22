@@ -1,13 +1,13 @@
-﻿using System;
+﻿using Discord.Commands;
+using Discord.WebSocket;
+using Microsoft.CodeAnalysis.CSharp.Scripting;
+using Microsoft.CodeAnalysis.Scripting;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Discord;
-using Discord.Commands;
-using Discord.WebSocket;
-using Microsoft.CodeAnalysis.CSharp.Scripting;
-using Microsoft.CodeAnalysis.Scripting;
 using Weywey.Core.Extensions;
 
 namespace Weywey.Core.Commands.Owner
@@ -15,27 +15,33 @@ namespace Weywey.Core.Commands.Owner
     public partial class OwnerModule : ModuleBase<SocketCommandContext>
     {
         [Name("Execute")]
-        [Command("execute")]
+        [Command("execute", RunMode = RunMode.Async)]
         [Alias("exec")]
         [Summary("Executes a C# code.")]
         [RequireOwner]
-        public async Task ExecuteCommand([Remainder] string code)
+        public async Task ExecuteCommand([Remainder] [Summary("The C# code to execute.")]string code)
         {
             var embed = new EmbedBuilder()
                     .WithColor(Color.DarkMagenta)
                     .WithDescription("Executing...")
                     .Build();
-            var message = await ReplyAsync(embed: embed).ConfigureAwait(false);
+            var message = await ReplyAsync(embed: embed);
 
             try
             {
                 var variables = Variables.FromContext(Context);
 
-                var options = ScriptOptions.Default;
-                options = options.WithImports("System", "System.Collections.Generic", "System.Linq", "System.Text",
-                    "System.Threading.Tasks", "Discord", "Discord.Commands", "Discord.WebSocket");
-                IEnumerable<Assembly> asm = AppDomain.CurrentDomain.GetAssemblies()
-                    .Where(xa => !xa.IsDynamic && !string.IsNullOrWhiteSpace(xa.Location));
+                var options = ScriptOptions.Default.WithImports(
+                    "System",
+                    "System.Collections.Generic",
+                    "System.Linq",
+                    "System.Text",
+                    "System.Threading.Tasks",
+                    "Discord",
+                    "Discord.Commands",
+                    "Discord.WebSocket"
+                );
+                IEnumerable<Assembly> asm = AppDomain.CurrentDomain.GetAssemblies().Where(xa => !xa.IsDynamic && !string.IsNullOrWhiteSpace(xa.Location));
                 options = options.WithReferences(asm);
 
                 Script<object> script = CSharpScript.Create(code.ClearCodeBlock(), options, typeof(Variables));
@@ -54,14 +60,14 @@ namespace Weywey.Core.Commands.Owner
                         .WithTitle("Execution Result")
                         .WithDescription(result.ReturnValue.ToString())
                         .WithColor(Color.DarkMagenta)
-                        .WithCurrentTimestamp().Build()).ConfigureAwait(false);
+                        .WithCurrentTimestamp().Build());
                 
                 else
                     await message.ModifyAsync(x => x.Embed = new EmbedBuilder()
                         .WithTitle("Execution Result")
                         .WithDescription("No return value")
                         .WithColor(Color.DarkMagenta)
-                        .WithCurrentTimestamp().Build()).ConfigureAwait(false);
+                        .WithCurrentTimestamp().Build());
             }
             
             catch (Exception exc)
@@ -70,9 +76,8 @@ namespace Weywey.Core.Commands.Owner
                         .WithTitle("Execution Result")
                         .WithDescription($"**{exc.GetType()}**: {exc.Message.Split('\n')[0]}")
                         .WithColor(Color.DarkMagenta)
-                        .WithCurrentTimestamp().Build()).ConfigureAwait(false);
+                        .WithCurrentTimestamp().Build());
             }
-
         }
 
         public class Variables

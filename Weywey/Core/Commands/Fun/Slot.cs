@@ -1,11 +1,8 @@
 ﻿using Discord;
 using Discord.Commands;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using Weywey.Core.Services;
+using Weywey.Core.Entities;
 
 namespace Weywey.Core.Commands.Fun
 {
@@ -14,23 +11,18 @@ namespace Weywey.Core.Commands.Fun
         [Name("Slot")]
         [Command("slot", RunMode = RunMode.Async)]
         [Summary("Play slot machine.")]
+        [RequireBotPermission(ChannelPermission.SendMessages)]
         public async Task SlotCommand()
         {
-            var random = ProviderService.GetService<Random>();
-            string a = _slotEmotes[random.Next(0, _slotEmotes.Count - 1)];
-            string b = _slotEmotes[random.Next(0, _slotEmotes.Count - 1)];
-            string c = _slotEmotes[random.Next(0, _slotEmotes.Count - 1)];
+            _slotMachine.Slot();
 
-            string text;
-
-            if (a == b && b == c && a == c)
-                text = "Congrats, all matching!!";
-
-            else if (a == b || b == c || a == c)
-                text = "Two match, you won.";
-
-            else
-                text = "Sorry, you lost.";
+            string text = _slotMachine.MatchCount switch
+            {
+                2 => "Congrats, all matching!!",
+                1 => "Match, you won.",
+                0 => "Sorry, you lost.",
+                _ => null
+            };
 
             var embed = new EmbedBuilder()
                 .WithFooter(footer =>
@@ -38,12 +30,12 @@ namespace Weywey.Core.Commands.Fun
                     footer.Text = Context.User.ToString();
                     footer.IconUrl = Context.User.GetAvatarUrl();
                 })
-                .WithDescription($"[ {a} {b} {c} ]\n**{text}**")
+                .WithDescription($"{_slotMachine.State}\n**{text}**")
                 .WithColor(Color.Orange).Build();
 
             await ReplyAsync(embed: embed);
         }
 
-        private List<string> _slotEmotes = new List<string> { "🍎", "🍊", "🍐", "🍋", "🍉", "🍇", "🍓", "🍒" };
+        private SlotMachine _slotMachine = new SlotMachine("🍎", "🍊", "🍐", "🍋", "🍉", "🍇", "🍓", "🍒");
     }
 }
