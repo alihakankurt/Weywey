@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Weywey.Core.Entities
+namespace Weywey.Core.Entities;
+
+public class ReactionRoleItem
 {
-    public class ReactionRoleItem
-    {
-        public ulong MessageId { get; set; }
-        public Dictionary<string, ulong> Roles { get; set; }
-    }
+    public ulong MessageId { get; set; }
+    public Dictionary<string, ulong> Roles { get; set; }
 }

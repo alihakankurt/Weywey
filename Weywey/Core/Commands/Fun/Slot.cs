@@ -4,38 +4,37 @@ using System;
 using System.Threading.Tasks;
 using Weywey.Core.Entities;
 
-namespace Weywey.Core.Commands.Fun
+namespace Weywey.Core.Commands.Information;
+
+public partial class FunModule : ModuleBase<SocketCommandContext>
 {
-    public partial class FunModule : ModuleBase<SocketCommandContext>
+    [Name("Slot")]
+    [Command("slot", RunMode = RunMode.Async)]
+    [Summary("Play slot machine.")]
+    [RequireBotPermission(ChannelPermission.SendMessages)]
+    public async Task SlotCommand()
     {
-        [Name("Slot")]
-        [Command("slot", RunMode = RunMode.Async)]
-        [Summary("Play slot machine.")]
-        [RequireBotPermission(ChannelPermission.SendMessages)]
-        public async Task SlotCommand()
+        SlotMachine.Slot();
+
+        string text = SlotMachine.MatchCount switch
         {
-            _slotMachine.Slot();
+            2 => "Congrats, all matching!!",
+            1 => "Match, you won.",
+            0 => "Sorry, you lost.",
+            _ => null
+        };
 
-            string text = _slotMachine.MatchCount switch
+        var embed = new EmbedBuilder()
+            .WithFooter(footer =>
             {
-                2 => "Congrats, all matching!!",
-                1 => "Match, you won.",
-                0 => "Sorry, you lost.",
-                _ => null
-            };
+                footer.Text = Context.User.ToString();
+                footer.IconUrl = Context.User.GetAvatarUrl();
+            })
+            .WithDescription($"{SlotMachine.State}\n**{text}**")
+            .WithColor(Color.Orange).Build();
 
-            var embed = new EmbedBuilder()
-                .WithFooter(footer =>
-                {
-                    footer.Text = Context.User.ToString();
-                    footer.IconUrl = Context.User.GetAvatarUrl();
-                })
-                .WithDescription($"{_slotMachine.State}\n**{text}**")
-                .WithColor(Color.Orange).Build();
-
-            await ReplyAsync(embed: embed);
-        }
-
-        private SlotMachine _slotMachine = new SlotMachine("🍎", "🍊", "🍐", "🍋", "🍉", "🍇", "🍓", "🍒");
+        await ReplyAsync(embed: embed);
     }
+
+    private SlotMachine SlotMachine = new SlotMachine("🍎", "🍊", "🍐", "🍋", "🍉", "🍇", "🍓", "🍒");
 }

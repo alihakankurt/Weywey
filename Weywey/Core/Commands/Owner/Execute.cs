@@ -8,97 +8,94 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Discord;
-using Weywey.Core.Extensions;
 
-namespace Weywey.Core.Commands.Owner
+namespace Weywey.Core.Commands.Owner;
+
+public partial class OwnerModule : ModuleBase<SocketCommandContext>
 {
-    public partial class OwnerModule : ModuleBase<SocketCommandContext>
+    [Name("Execute")]
+    [Command("execute", RunMode = RunMode.Async)]
+    [Alias("exec")]
+    [Summary("Executes a C# code.")]
+    [RequireOwner]
+    public async Task ExecuteCommand([Remainder][Summary("The C# code to execute.")] string code)
     {
-        [Name("Execute")]
-        [Command("execute", RunMode = RunMode.Async)]
-        [Alias("exec")]
-        [Summary("Executes a C# code.")]
-        [RequireOwner]
-        public async Task ExecuteCommand([Remainder] [Summary("The C# code to execute.")]string code)
+        var embed = new EmbedBuilder()
+            .WithColor(Color.DarkMagenta)
+            .WithDescription("Executing...")
+            .Build();
+        var message = await ReplyAsync(embed: embed);
+
+        try
         {
-            var embed = new EmbedBuilder()
-                    .WithColor(Color.DarkMagenta)
-                    .WithDescription("Executing...")
-                    .Build();
-            var message = await ReplyAsync(embed: embed);
+            var variables = Variables.FromContext(Context);
+            var options = ScriptOptions.Default.WithImports(
+                "System",
+                "System.Collections.Generic",
+                "System.Linq",
+                "System.Text",
+                "System.Threading.Tasks",
+                "Discord",
+                "Discord.Commands",
+                "Discord.WebSocket"
+            );
+            IEnumerable<Assembly> asm = AppDomain.CurrentDomain.GetAssemblies().Where(xa => !xa.IsDynamic && !string.IsNullOrWhiteSpace(xa.Location));
+            options = options.WithReferences(asm);
 
-            try
-            {
-                var variables = Variables.FromContext(Context);
+            Script<object> script = CSharpScript.Create(code.ClearCodeBlock(), options, typeof(Variables));
+            script.Compile();
 
-                var options = ScriptOptions.Default.WithImports(
-                    "System",
-                    "System.Collections.Generic",
-                    "System.Linq",
-                    "System.Text",
-                    "System.Threading.Tasks",
-                    "Discord",
-                    "Discord.Commands",
-                    "Discord.WebSocket"
-                );
-                IEnumerable<Assembly> asm = AppDomain.CurrentDomain.GetAssemblies().Where(xa => !xa.IsDynamic && !string.IsNullOrWhiteSpace(xa.Location));
-                options = options.WithReferences(asm);
+            ScriptState<object> result = await script.RunAsync(variables).ConfigureAwait(false);
 
-                Script<object> script = CSharpScript.Create(code.ClearCodeBlock(), options, typeof(Variables));
-                script.Compile();
+            if (result?.ReturnValue is EmbedBuilder)
+                await message.ModifyAsync(x => x.Embed = (result.ReturnValue as EmbedBuilder).Build());
 
-                ScriptState<object> result = await script.RunAsync(variables).ConfigureAwait(false);
+            else if (result?.ReturnValue is Embed)
+                await message.ModifyAsync(x => x.Embed = result.ReturnValue as Embed);
 
-                if (result?.ReturnValue is EmbedBuilder)
-                    await message.ModifyAsync(x => x.Embed = (result.ReturnValue as EmbedBuilder).Build());
-
-                else if (result?.ReturnValue is Embed)
-                    await message.ModifyAsync(x => x.Embed = result.ReturnValue as Embed);
-
-                else if (result?.ReturnValue != null && !string.IsNullOrWhiteSpace(result.ReturnValue.ToString()))
-                    await message.ModifyAsync(x => x.Embed = new EmbedBuilder()
-                        .WithTitle("Execution Result")
-                        .WithDescription(result.ReturnValue.ToString())
-                        .WithColor(Color.DarkMagenta)
-                        .WithCurrentTimestamp().Build());
-                
-                else
-                    await message.ModifyAsync(x => x.Embed = new EmbedBuilder()
-                        .WithTitle("Execution Result")
-                        .WithDescription("No return value")
-                        .WithColor(Color.DarkMagenta)
-                        .WithCurrentTimestamp().Build());
-            }
-            
-            catch (Exception exc)
-            {
+            else if (result?.ReturnValue != null && !string.IsNullOrWhiteSpace(result.ReturnValue.ToString()))
                 await message.ModifyAsync(x => x.Embed = new EmbedBuilder()
-                        .WithTitle("Execution Result")
-                        .WithDescription($"**{exc.GetType()}**: {exc.Message.Split('\n')[0]}")
-                        .WithColor(Color.DarkMagenta)
-                        .WithCurrentTimestamp().Build());
-            }
+                    .WithTitle("Execution Result")
+                    .WithDescription(result.ReturnValue.ToString())
+                    .WithColor(Color.DarkMagenta)
+                    .WithCurrentTimestamp().Build());
+
+            else
+                await message.ModifyAsync(x => x.Embed = new EmbedBuilder()
+                    .WithTitle("Execution Result")
+                    .WithDescription("No return value")
+                    .WithColor(Color.DarkMagenta)
+                    .WithCurrentTimestamp().Build());
         }
 
-        public class Variables
+        catch (Exception exc)
         {
-            public SocketGuild Guild { get; set; }
-            public SocketTextChannel Channel { get; set; }
-            public SocketUserMessage Message { get; set; }
-            public SocketUser User { get; set; }
-            public DiscordSocketClient Client { get; set; }
+            await message.ModifyAsync(x => x.Embed = new EmbedBuilder()
+                    .WithTitle("Execution Result")
+                    .WithDescription($"**{exc.GetType()}**: {exc.Message.Split('\n')[0]}")
+                    .WithColor(Color.DarkMagenta)
+                    .WithCurrentTimestamp().Build());
+        }
+    }
 
-            public static Variables FromContext(SocketCommandContext context)
+    public class Variables
+    {
+        public SocketGuild Guild { get; set; }
+        public SocketTextChannel Channel { get; set; }
+        public SocketUserMessage Message { get; set; }
+        public SocketUser User { get; set; }
+        public DiscordSocketClient Client { get; set; }
+
+        public static Variables FromContext(SocketCommandContext context)
+        {
+            return new Variables
             {
-                return new Variables
-                {
-                    Guild = context.Guild,
-                    Channel = context.Channel as SocketTextChannel,
-                    Message = context.Message,
-                    User = context.User,
-                    Client = context.Client
-                };
-            }
+                Guild = context.Guild,
+                Channel = context.Channel as SocketTextChannel,
+                Message = context.Message,
+                User = context.User,
+                Client = context.Client
+            };
         }
     }
 }

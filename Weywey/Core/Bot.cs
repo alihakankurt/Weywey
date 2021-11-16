@@ -15,12 +15,12 @@ namespace Weywey.Core
 {
     public class Bot
     {
-        private DiscordSocketClient _client { get; set; }
-        private CommandService _commands { get; set; }
+        private DiscordSocketClient Client { get; set; }
+        private CommandService Commands { get; set; }
 
         public Bot()
         {
-            _client = new DiscordSocketClient(new DiscordSocketConfig
+            Client = new DiscordSocketClient(new DiscordSocketConfig
             {
                 LogLevel = LogSeverity.Verbose,
                 GatewayIntents =
@@ -43,41 +43,45 @@ namespace Weywey.Core
                 AlwaysDownloadUsers = true
             });
 
-            _commands = new CommandService(new CommandServiceConfig
+            Commands = new CommandService(new CommandServiceConfig
             {
                 LogLevel = LogSeverity.Verbose,
                 DefaultRunMode = RunMode.Async,
                 CaseSensitiveCommands = true,
                 IgnoreExtraArgs = true
             });
-            _commands.AddTypeReader<GuildEmote>(new EmoteTypeReader());
-            _commands.AddTypeReader<Color>(new ColorTypeReader());
+            Commands.AddTypeReader<GuildEmote>(new EmoteTypeReader());
+            Commands.AddTypeReader<Color>(new ColorTypeReader());
 
             var collection = new ServiceCollection()
-                .AddSingleton(_client)
-                .AddSingleton(_commands)
+                .AddSingleton(Client)
+                .AddSingleton(Commands)
                 .AddSingleton(new Random())
                 .AddSingleton(new HttpClient());
 
             ProviderService.SetProvider(collection);
-            _commands.Log += Log;
-            _client.Log += Log;
-            _client.Ready += OnReady;
-            _client.MessageReceived += OnMessage;
+            Commands.Log += Log;
+            Client.Log += Log;
+            Client.Ready += OnReady;
+            Client.MessageReceived += OnMessage;
         }
 
         public async Task RunAsync()
         {
             ConfigurationService.RunService();
-            DataService.RunService();
-            ReactionService.RunService();
-
+            
             if (string.IsNullOrWhiteSpace(ConfigurationService.Token))
                 return;
-            
-            await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), ProviderService.Provider);
-            await _client.LoginAsync(TokenType.Bot, ConfigurationService.Token);
-            await _client.StartAsync();
+
+            DataService.RunService();
+            InteractionService.RunService();
+            ReactionsRoleService.RunService();
+            PollService.RunService();
+            GiveawayService.RunService();
+
+            await Commands.AddModulesAsync(Assembly.GetEntryAssembly(), ProviderService.Provider);
+            await Client.LoginAsync(TokenType.Bot, ConfigurationService.Token);
+            await Client.StartAsync();
 
             await Task.Delay(-1);
         }
@@ -98,25 +102,24 @@ namespace Weywey.Core
 
         private async Task OnReady()
         {
-            await _client.SetStatusAsync(UserStatus.Idle);
-            await _client.SetGameAsync($"@{_client.CurrentUser.Username} help • Version {ConfigurationService.Version}", null, ActivityType.Watching);
-            ReactionService.CompletePolls().GetAwaiter();
+            await Client.SetStatusAsync(UserStatus.Idle);
+            await Client.SetGameAsync($"@{Client.CurrentUser.Username} help • Version {ConfigurationService.Version}", null, ActivityType.Watching);
         }
 
         private async Task OnMessage(SocketMessage arg)
         {
             var message = arg as SocketUserMessage;
-            var context = new SocketCommandContext(_client, message);
+            var context = new SocketCommandContext(Client, message);
             
             if (message.Author.IsBot || message.Channel is IDMChannel)
                 return;
             
             var argPos = 0;
 
-            if (!(message.HasStringPrefix(ConfigurationService.Prefix, ref argPos) || message.HasMentionPrefix(_client.CurrentUser, ref argPos)))
+            if (!(message.HasStringPrefix(ConfigurationService.Prefix, ref argPos) || message.HasMentionPrefix(Client.CurrentUser, ref argPos)))
                 return;
 
-            var result = await _commands.ExecuteAsync(context, argPos, ProviderService.Provider);
+            var result = await Commands.ExecuteAsync(context, argPos, ProviderService.Provider);
 
             if (!result.IsSuccess)
             {
@@ -138,7 +141,7 @@ namespace Weywey.Core
                 CommandError.UnmetPrecondition => Messages.UnmetPreconditions,
                 CommandError.Exception => Messages.Exception,
                 CommandError.Unsuccessful => Messages.Unsuccessful,
-                _ => $"ERROR: {result}"
+                _ => $"ERROR: {result.Error}"
             };
         }
     }

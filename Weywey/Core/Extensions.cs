@@ -1,0 +1,59 @@
+﻿using Discord.Commands;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
+using Weywey.Core.Services;
+
+namespace Weywey.Core;
+
+public static class Extensions
+{
+    public static string GetSyntax(this CommandInfo source)
+    {
+        var root = $"{ConfigurationService.Prefix}{string.Join(" | ", source.Aliases)}";
+        var parameters = $" {string.Join(' ', source.Parameters.Select(p => p.IsOptional ? $"[{p.Name}]" : $"<{p.Name}>"))}\"```";
+        return WithCodeBlock($"\"{root}{parameters}\"");
+    }
+
+    public static string ClearCodeBlock(this string source)
+            => (source.StartsWith("```") && source.EndsWith("```")) ? string.Join("\n", source.Trim('`').Split("\n").Where((l, i) => i != 0)) : source;
+
+    public static string WithCodeBlock(this string source, string language = "cs")
+        => $"```{language}\n{source}```";
+
+    public static string ToBinary(this string source)
+        => string.Join("", Encoding.ASCII.GetBytes(source).Select(x => Convert.ToString(x, 2).PadLeft(8, '0')));
+
+    public static string FromBinary(this string source)
+    {
+        var list = new List<byte>();
+
+        for (int i = 0; i < source.Length; i += 8)
+            list.Add(Convert.ToByte(source.Substring(i, 8), 2));
+
+        return Encoding.ASCII.GetString(list.ToArray());
+    }
+
+    public static string SeperateFromCaps(this string source)
+    {
+        return new Regex(@"
+                (?<=[A-Z])(?=[A-Z][a-z]) |
+                 (?<=[^A-Z])(?=[A-Z]) |
+                 (?<=[A-Za-z])(?=[^A-Za-z])", RegexOptions.IgnorePatternWhitespace).Replace(source, " ");
+    }
+
+    public static int ToInt32(this string source)
+    {
+        if (int.TryParse(source, out int result))
+            return result;
+
+        return 0;
+    }
+
+    public static T Choose<T>(this IEnumerable<T> source)
+    {
+        return source.ElementAt(new Random().Next(source.Count()));
+    }
+}
