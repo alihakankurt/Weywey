@@ -3,6 +3,7 @@ using Discord.Commands;
 using Discord.WebSocket;
 using System;
 using System.Threading.Tasks;
+using Weywey.Core.Constants;
 using Weywey.Core.Services;
 
 namespace Weywey.Core.Commands.Information;
@@ -19,12 +20,12 @@ public partial class FunModule : ModuleBase<SocketCommandContext>
     {
         if (user == null || user.Id == Context.User.Id)
         {
-            await ReplyAsync($"**{Context.User.Username}**: paaaarty!🎉🍺");
+            await ReplyAsync($"**{Context.User.Username}**: paaaarty!{Emotes.Confetti}{Emotes.Beer}");
         }
 
         else if (user.Id == Context.Client.CurrentUser.Id)
         {
-            await ReplyAsync("*drinks with you* 🍻");
+            await ReplyAsync($"*drinks with you* {Emotes.Beer}");
         }
 
         else if (user.IsBot)
@@ -34,9 +35,9 @@ public partial class FunModule : ModuleBase<SocketCommandContext>
 
         else
         {
-            var message = await ReplyAsync($"**{user.Username}**, you got an offer from **{Context.User.Username}** 🍺 to you.");
-            await message.AddReactionAsync(new Emoji("🍺"));
-            var reaction = await InteractionService.WaitForReactionAsync(message.Id, TimeSpan.FromSeconds(30), x => x.User.Value.Id == user.Id && x.Emote.Name == "🍺");
+            var message = await ReplyAsync($"**{user.Username}**, you got an offer from **{Context.User.Username}** {Emotes.Beer}.");
+            await message.AddReactionAsync(Emotes.Beer);
+            var reaction = await InteractionService.WaitForReactionAsync(message.Id, TimeSpan.FromSeconds(30), r => (r.User.Value.Id == user.Id) && (r.Emote.Name == Emotes.Beer.Name));
 
             if (reaction == null)
                 await message.ModifyAsync(x => x.Content = $"Sorry **{Context.User.Username}**, **{user.Username}** don't want to drink with you 😢");
