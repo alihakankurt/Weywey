@@ -16,18 +16,19 @@ public static class ConfigurationService
         try
         {
             var config = new ConfigurationBuilder()
-            .SetBasePath(AppContext.BaseDirectory)
-            .AddYamlFile("configuration.yaml")
-            .Build();
+                .SetBasePath(AppContext.BaseDirectory)
+                .AddJsonFile("appsettings.json")
+                .Build();
             Token = config["Token"];
             Prefix = config["Prefix"];
             Version = config["Version"];
             WolframToken = config["WolframToken"];
         }
 
-        catch (FileNotFoundException)
+        catch
         {
-            Console.WriteLine("configuration.yaml file not found.");
+            Console.WriteLine("Configuration could not be loaded! Exiting...");
+            Environment.Exit(0);
         }
     }
 }
